@@ -2,3 +2,4 @@
 .coverage
 .project
 .pydevproject
+socketpolicy/log

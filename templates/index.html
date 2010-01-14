@@ -25,6 +25,10 @@ soundManager.onready(function(status) {
         url: '/static/sounds/message.mp3'
     });
 
+    soundManager.createSound({
+        id: 'error',
+        url: '/static/sounds/error.mp3'
+    });
 });
 
 var selected_cards = [];
@@ -71,11 +75,13 @@ $(document).ready(function() {
     ws.onopen = function() {
         ws.onmessage = function(msg) {
             update_table();
-            soundManager.play('message');
             if (msg.data.indexOf('Error') != -1) {
-                $('#messages').html(msg.data);
-            } else {
+                soundManager.play('error');
                 $('#error').html(msg.data);
+            } else {
+                soundManager.play('message');
+                $('#messages').html(msg.data);
+                $('#error').html('');
             }
         }
     };
