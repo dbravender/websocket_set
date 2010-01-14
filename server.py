@@ -11,10 +11,31 @@ import setgame
 
 loader = tornado.template.Loader(os.path.join(os.path.join(os.path.realpath(__file__) + '/../'), 'templates'))
 
+games = []
+
+class NewGameHandler(tornado.web.RequestHandler):
+    def get(self):
+        game = setgame.Game()
+        games.append(game)
+        application.add_handlers(r'.*$', [(r'/' + str(id(game)), NewPlayerHandler, {'game': game})])
+        self.redirect('/' + str(id(game)))
+
 class NewPlayerHandler(tornado.web.RequestHandler):
     def __init__(self, *args, **kwargs):
-        self.player = kwargs.pop('player')
+        self.game = kwargs.pop('game')
         super(NewPlayerHandler, self).__init__(*args, **kwargs)
+
+    def get(self):
+        player = setgame.Player(game=self.game)
+        application.add_handlers(r'.*$', [(r'/' + str(id(self.game)) + '/' + str(id(player)) + '/get', PlayerMessage, {'player': player})])
+        application.add_handlers(r'.*$', [(r'/' + str(id(self.game)) + '/' + str(id(player)) + '/table', TableHandler, {'player': player})])
+        application.add_handlers(r'.*$', [(r'/' + str(id(self.game)) + '/' + str(id(player)), PlayerHandler, {'player': player})])
+        self.redirect('/' + str(id(self.game)) + '/' + str(id(player)))
+
+class PlayerHandler(tornado.web.RequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.player = kwargs.pop('player')
+        super(PlayerHandler, self).__init__(*args, **kwargs)
 
     def get(self):
         self.write(loader.load('index.html').generate(player=self.player))
@@ -30,6 +51,7 @@ class TableHandler(tornado.web.RequestHandler):
 class PlayerMessage(tornado.websocket.WebSocketHandler):
     def __init__(self, *args, **kwargs):
         self.player = kwargs.pop('player')
+        self.player.socket = self
         super(PlayerMessage, self).__init__(*args, **kwargs)
 
     def open(self):
@@ -41,22 +63,25 @@ class PlayerMessage(tornado.websocket.WebSocketHandler):
             for card_id in message.split(' '):
                 cards.append(setgame.Deck.id_to_card[card_id])
             self.player.found_set(cards)
-            self.write_message('Got one!')
+            results = []
+            for number, player in enumerate(self.player.game.players):
+                results.append('Player %s: %s' % (number + 1, player.sets))
+            for player in self.player.game.players:
+                try:
+                    player.socket.write_message('<br/>'.join(results))
+                except:
+                    pass
         except setgame.GameException, e:
-            self.write_message(str(e))
+            self.write_message('Error:' + str(e))
         except Exception, e:
             self.write_message('Error: ' + str(e))
+            print traceback.print_exc()
         self.receive_message(self.on_message)
 
 settings = {'static_path': os.path.join(os.path.realpath(__file__ + '/../'), 'static')}
 
-game = setgame.Game()
-player = setgame.Player(game=game, name="Player")
-
 application = tornado.web.Application(**settings)
-application.add_handlers('.*$', [(r'/', NewPlayerHandler, {'player': player}),
-                                 (r'/table', TableHandler, {'player': player}),
-                                 (r'/get', PlayerMessage, {'player': player})])
+application.add_handlers('.*$', [(r'/', NewGameHandler)])
 
 if __name__ == '__main__':
     http_server = tornado.httpserver.HTTPServer(application)

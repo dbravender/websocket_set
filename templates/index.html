@@ -27,14 +27,24 @@ soundManager.onready(function(status) {
 
 });
 
+var selected_cards = [];
+
 function check_set() {
-    if ($('.selected').length == 3) {
-        var selected_cards = [];
-        $('.selected').each(function() {
-            var card_id = $(this)[0].id.match(/card-(\d*)/)[1];
-            selected_cards.push(card_id);
-        });
+    selected_cards = [];
+    $('.selected').each(function() {
+        selected_cards.push($(this)[0].id);
+    });
+    
+    if (selected_cards.length == 3) {
         ws.send(selected_cards.join(' '));
+    }
+}
+
+function check_table() {
+    for (i in selected_cards) {
+        if (document.getElementById(selected_cards[i])) {
+            $('#' + selected_cards[i]).addClass('selected');
+        }
     }
 }
 
@@ -42,34 +52,34 @@ function update_table() {
     // Make it so that clicking on cards toggles their selected property
     // Make the list of selected cards from selecting on this property
     $('#table').load(
-        'http://' + location.hostname + ':' + location.port + location.pathname + 'table', 
+        'http://' + location.hostname + ':' + location.port + location.pathname + '/table', 
         function (responseText, textStatus, XMLHttpRequest) {
             $('.card').bind('click', function() {
-                $(this).toggleClass('selected');
-                check_set();
-            });
-            /*for (var card in selected_cards) {
-                if ($('#card-' + selected_cards[card]).length == 0) {
-                    // Selected card was removed from the table
-                    selected_cards.splice(card);
-                } else {
-                    // Mark the card as selected if it's still on the table
-                    $('#card-' + selected_cards[card]).addClass('selected');
+                if ($('.selected').length < 3 || $(this).hasClass('selected')) {
+                    $(this).toggleClass('selected');
+                    check_set();
                 }
-            }*/
+            });
+            check_table();
         }
     );
 }
 
 $(document).ready(function() {
-    ws = new WebSocket('ws://' + location.hostname + ':' + location.port + location.pathname + 'get')
+    ws = new WebSocket('ws://' + location.hostname + ':' + location.port + location.pathname + '/get')
     
-    ws.onmessage = function(msg) {
-        update_table();
-        soundManager.play('message');
-        $('#messages').prepend(msg.data + '<br/>');
-    }
-
+    ws.onopen = function() {
+        ws.onmessage = function(msg) {
+            update_table();
+            soundManager.play('message');
+            if (msg.data.indexOf('Error') != -1) {
+                $('#messages').html(msg.data);
+            } else {
+                $('#error').html(msg.data);
+            }
+        }
+    };
+    
     update_table();
 });
 
@@ -91,8 +101,8 @@ $(document).ready(function() {
 <table width="100%" height="100%">
 <tr>
 <td width="200px" valign="top">
-<div id="messages" style="width: 100%; height: 100%; overflow: scroll">
-</div>
+<div id="error" style="width: 100%"></div>
+<div id="messages" style="width: 100%"></div>
 </td>
 <td valign="top">
 <div id="table" style="width: 350px; margin-left: auto; margin-right: auto;">

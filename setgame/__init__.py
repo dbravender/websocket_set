@@ -15,6 +15,7 @@ class Game(object):
         shuffle(self.cards)
         self.table_cards = []
         self.check_table()
+        self.players = []
 
     def check_table(self):
         while True:
@@ -62,6 +63,7 @@ class Game(object):
 class Player(object):
     def __init__(self, game, name='New Player'):
         self.game = game
+        self.game.players.append(self)
         self.name = name
         self.sets = 0
 
