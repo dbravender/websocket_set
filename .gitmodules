@@ -1,3 +1,9 @@
 [submodule "tornado"]
 	path = tornado
 	url = git://github.com/dbravender/tornado.git
+[submodule "web-socket-js"]
+	path = web-socket-js
+	url = git://github.com/gimite/web-socket-js.git
+[submodule "soundmanager2"]
+	path = soundmanager2
+	url = git://github.com/scottschiller/SoundManager2.git
