@@ -78,10 +78,15 @@ $(document).ready(function() {
             if (msg.data.indexOf('Error') != -1) {
                 soundManager.play('error');
                 $('#error').html(msg.data);
+                setTimeout(function() {
+                    $('#error').html('');
+                }, 3000);
+            } else if (msg.data.indexOf('Score') != -1) {
+                soundManager.play('message');
+                $('#score').html(msg.data);
             } else {
                 soundManager.play('message');
-                $('#messages').html(msg.data);
-                $('#error').html('');
+                $('#messages').append(msg.data + '<br/>');
             }
         }
     };
@@ -107,7 +112,13 @@ $(document).ready(function() {
 <table width="100%" height="100%">
 <tr>
 <td width="200px" valign="top">
-<div id="error" style="width: 100%"></div>
+<a href="http://www.setgame.com/set/rules_set.htm" target="rules">Set Rules</a><br/>
+Send this link to your friends so they can join you:<br/>
+<script>
+document.write('<span style="font-size:75%">http://' + location.hostname + ':' + location.port + '{{ player.game.url }}</span>');
+</script>
+<div id="error" style="width: 100%; color: red;"></div>
+<div id="score" style="width: 100%"></div>
 <div id="messages" style="width: 100%"></div>
 </td>
 <td valign="top">

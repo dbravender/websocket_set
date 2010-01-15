@@ -16,6 +16,7 @@ games = []
 class NewGameHandler(tornado.web.RequestHandler):
     def get(self):
         game = setgame.Game()
+        game.url = '/' + str(id(game))
         games.append(game)
         application.add_handlers(r'.*$', [(r'/' + str(id(game)), NewPlayerHandler, {'game': game})])
         self.redirect('/' + str(id(game)))
@@ -55,6 +56,13 @@ class PlayerMessage(tornado.websocket.WebSocketHandler):
         super(PlayerMessage, self).__init__(*args, **kwargs)
 
     def open(self):
+        for player in self.player.game.players:
+            if player == self.player:
+                continue
+            try:
+                player.socket.write_message('Another player joined')
+            except:
+                pass
         self.receive_message(self.on_message)
 
     def on_message(self, message):
@@ -63,7 +71,7 @@ class PlayerMessage(tornado.websocket.WebSocketHandler):
             for card_id in message.split(' '):
                 cards.append(setgame.Deck.id_to_card[card_id])
             self.player.found_set(cards)
-            results = []
+            results = ['Score']
             for number, player in enumerate(self.player.game.players):
                 results.append('Player %s: %s' % (number + 1, player.sets))
             for player in self.player.game.players:
@@ -72,7 +80,7 @@ class PlayerMessage(tornado.websocket.WebSocketHandler):
                 except:
                     pass
         except setgame.GameException, e:
-            self.write_message('Error:' + str(e))
+            self.write_message('Error: ' + str(e))
         except Exception, e:
             self.write_message('Error: ' + str(e))
             print traceback.print_exc()
